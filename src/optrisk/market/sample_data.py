@@ -71,7 +71,7 @@ def build_demo_portfolio() -> Portfolio:
     portfolio.add(
         Position(
             instrument=OptionSpec(option_type="call", strike=82.0, expiry=0.33, style="european", underlying_type="future"),
-            quantity=25,
+            quantity=2,
             market=fut,
             label="CRUDE 82C 4M (Fut)",
             multiplier=1000,
@@ -80,7 +80,7 @@ def build_demo_portfolio() -> Portfolio:
     portfolio.add(
         Position(
             instrument=Stock(),
-            quantity=-400,
+            quantity=-75,
             market=eq,
             label="TECH shares (partial hedge)",
             multiplier=1,
