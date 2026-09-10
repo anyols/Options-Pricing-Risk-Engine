@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "optrisk"
+version = "0.1.0"
+description = "Options Pricing & Risk Engine - portfolio pricing, Greeks, scenario analysis and delta-hedging using Black-Scholes/Black-76, binomial, Monte Carlo and Heston models."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["options", "derivatives", "quant-finance", "black-scholes", "risk", "greeks", "delta-hedging"]
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pandas>=2.1",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "plotly>=5.18",
+]
+
+[project.optional-dependencies]
+app = ["streamlit>=1.32", "kaleido>=0.2.1"]
+dev = ["pytest>=8.0", "pytest-cov>=4.1"]
+notebook = ["jupyter>=1.0", "ipykernel>=6.29"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

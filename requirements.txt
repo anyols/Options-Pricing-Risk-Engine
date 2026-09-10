@@ -1,0 +1,21 @@
+# Core numerical / data stack
+numpy>=1.26
+scipy>=1.11
+pandas>=2.1
+
+# Visualization
+matplotlib>=3.8
+seaborn>=0.13
+plotly>=5.18
+kaleido>=0.2.1
+
+# Interactive dashboard
+streamlit>=1.32
+
+# Testing
+pytest>=8.0
+pytest-cov>=4.1
+
+# Notebook
+jupyter>=1.0
+ipykernel>=6.29
