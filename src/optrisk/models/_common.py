@@ -26,5 +26,14 @@ def is_call(option_type: object) -> np.ndarray:
 
 
 def scalarize(x: np.ndarray):
-    """Unwrap a 0-d ndarray back to a plain Python float; pass arrays through."""
-    return x.item() if isinstance(x, np.ndarray) and x.ndim == 0 else x
+    """Unwrap a 0-d ndarray or numpy scalar (e.g. np.float64) to a plain Python
+    float; pass true arrays through unchanged. Elementwise numpy arithmetic on
+    0-d arrays sometimes yields a numpy scalar type rather than a 0-d ndarray
+    depending on the exact operation chain, so both cases are handled here to
+    keep scalar outputs consistently plain Python floats.
+    """
+    if isinstance(x, np.ndarray) and x.ndim == 0:
+        return x.item()
+    if isinstance(x, np.generic):
+        return x.item()
+    return x
