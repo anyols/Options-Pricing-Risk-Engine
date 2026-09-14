@@ -15,7 +15,7 @@ variable being bumped".
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from optrisk.greeks.types import Greeks
 
@@ -29,7 +29,7 @@ def numerical_greeks(
     vol: float,
     expiry: float,
     rate: float,
-    spot_bump: Optional[float] = None,
+    spot_bump: float | None = None,
     vol_bump: float = 1e-4,
     expiry_bump: float = 1e-4,
     rate_bump: float = 1e-5,
@@ -45,7 +45,7 @@ def numerical_greeks(
     h_t = min(expiry_bump, expiry / 4) if expiry > 0 else expiry_bump
     h_r = rate_bump
 
-    base = dict(spot=spot, vol=vol, expiry=expiry, rate=rate)
+    base = {"spot": spot, "vol": vol, "expiry": expiry, "rate": rate}
 
     def p(**overrides: float) -> float:
         kwargs = dict(base)
@@ -77,12 +77,9 @@ def numerical_greeks(
     ) / (4 * h_s * h_t)
 
     # third order: pure d^3V/dS^3, and mixed d^3V/dS^2 dY for Y in {vol, expiry}
-    speed = (
-        p(spot=spot + 2 * h_s)
-        - 2 * p(spot=spot + h_s)
-        + 2 * p(spot=spot - h_s)
-        - p(spot=spot - 2 * h_s)
-    ) / (2 * h_s**3)
+    speed = (p(spot=spot + 2 * h_s) - 2 * p(spot=spot + h_s) + 2 * p(spot=spot - h_s) - p(spot=spot - 2 * h_s)) / (
+        2 * h_s**3
+    )
 
     zomma = (
         p(spot=spot + h_s, vol=vol + h_v)

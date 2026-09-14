@@ -11,7 +11,7 @@ from __future__ import annotations
 from optrisk.instruments.option import MarketEnv, OptionSpec, Stock
 from optrisk.instruments.portfolio import Portfolio, Position
 
-__all__ = ["sample_equity_market", "sample_future_market", "build_demo_portfolio"]
+__all__ = ["build_demo_portfolio", "sample_equity_market", "sample_future_market"]
 
 
 def sample_equity_market(spot: float = 185.0, vol: float = 0.28) -> MarketEnv:
@@ -34,7 +34,9 @@ def build_demo_portfolio() -> Portfolio:
     portfolio = Portfolio(name="Demo Multi-Underlying Book")
     portfolio.add(
         Position(
-            instrument=OptionSpec(option_type="call", strike=185.0, expiry=0.25, style="european", underlying_type="equity"),
+            instrument=OptionSpec(
+                option_type="call", strike=185.0, expiry=0.25, style="european", underlying_type="equity"
+            ),
             quantity=10,
             market=eq,
             label="TECH 185C 3M",
@@ -43,7 +45,9 @@ def build_demo_portfolio() -> Portfolio:
     )
     portfolio.add(
         Position(
-            instrument=OptionSpec(option_type="call", strike=210.0, expiry=0.25, style="european", underlying_type="equity"),
+            instrument=OptionSpec(
+                option_type="call", strike=210.0, expiry=0.25, style="european", underlying_type="equity"
+            ),
             quantity=-15,
             market=eq,
             label="TECH 210C 3M",
@@ -52,7 +56,9 @@ def build_demo_portfolio() -> Portfolio:
     )
     portfolio.add(
         Position(
-            instrument=OptionSpec(option_type="put", strike=160.0, expiry=0.5, style="american", underlying_type="equity"),
+            instrument=OptionSpec(
+                option_type="put", strike=160.0, expiry=0.5, style="american", underlying_type="equity"
+            ),
             quantity=20,
             market=eq,
             label="TECH 160P 6M (Am)",
@@ -61,7 +67,9 @@ def build_demo_portfolio() -> Portfolio:
     )
     portfolio.add(
         Position(
-            instrument=OptionSpec(option_type="put", strike=185.0, expiry=0.5, style="european", underlying_type="equity"),
+            instrument=OptionSpec(
+                option_type="put", strike=185.0, expiry=0.5, style="european", underlying_type="equity"
+            ),
             quantity=-5,
             market=eq,
             label="TECH 185P 6M",
@@ -70,7 +78,9 @@ def build_demo_portfolio() -> Portfolio:
     )
     portfolio.add(
         Position(
-            instrument=OptionSpec(option_type="call", strike=82.0, expiry=0.33, style="european", underlying_type="future"),
+            instrument=OptionSpec(
+                option_type="call", strike=82.0, expiry=0.33, style="european", underlying_type="future"
+            ),
             quantity=2,
             market=fut,
             label="CRUDE 82C 4M (Fut)",

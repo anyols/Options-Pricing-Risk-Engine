@@ -17,9 +17,10 @@ finite-difference cross-checks that validate this.
 
 from __future__ import annotations
 
-from typing import Union
+from typing import cast
 
 import numpy as np
+from numpy.typing import NDArray
 
 from optrisk.greeks.numerical import numerical_greeks
 from optrisk.greeks.types import Greeks
@@ -27,9 +28,23 @@ from optrisk.models._common import MIN_T, MIN_VOL, N, as_float_arrays, is_call, 
 from optrisk.models.black76 import black76_d1_d2, black76_price
 from optrisk.models.black_scholes import bsm_d1_d2, bsm_price
 
-__all__ = ["bsm_greeks", "bsm_full_greeks", "black76_greeks", "black76_full_greeks"]
+__all__ = ["black76_full_greeks", "black76_greeks", "bsm_full_greeks", "bsm_greeks"]
 
-ArrayOrFloat = Union[float, np.ndarray]
+ArrayOrFloat = float | np.ndarray
+
+
+def _scalar(x: NDArray[np.float64] | np.generic) -> float:
+    """`scalarize`, narrowed to `float` for the (scalar-input) `Greeks` constructors below.
+
+    `bsm_greeks`/`black76_greeks` are genuinely vectorized internally (see
+    `optrisk.risk.hedging`, which calls them with an array of spots to get an
+    array-valued `.delta` in one shot), but the `Greeks` dataclass fields are
+    typed strictly `float` since every other consumer (Position/Portfolio
+    aggregation, the scenario/hedging engines, the dashboard) does scalar
+    arithmetic on them. This cast documents that boundary rather than
+    silently widening `Greeks` to a float-or-array type everywhere.
+    """
+    return cast(float, scalarize(x))
 
 
 def bsm_greeks(
@@ -39,7 +54,7 @@ def bsm_greeks(
     dividend_yield: ArrayOrFloat,
     vol: ArrayOrFloat,
     expiry: ArrayOrFloat,
-    option_type: Union[str, np.ndarray] = "call",
+    option_type: str | np.ndarray = "call",
 ) -> Greeks:
     """Delta, Gamma, Vega, Theta, Rho, Vanna, Volga under Black-Scholes-Merton.
 
@@ -69,22 +84,24 @@ def bsm_greeks(
     volga = vega * d1 * d2 / vol
 
     return Greeks(
-        delta=scalarize(delta),
-        gamma=scalarize(gamma),
-        vega=scalarize(vega),
-        theta=scalarize(theta),
-        rho=scalarize(rho),
-        vanna=scalarize(vanna),
-        volga=scalarize(volga),
+        delta=_scalar(delta),
+        gamma=_scalar(gamma),
+        vega=_scalar(vega),
+        theta=_scalar(theta),
+        rho=_scalar(rho),
+        vanna=_scalar(vanna),
+        volga=_scalar(volga),
     )
 
 
-def bsm_full_greeks(spot, strike, rate, dividend_yield, vol, expiry, option_type: str = "call") -> Greeks:
+def bsm_full_greeks(
+    spot: float, strike: float, rate: float, dividend_yield: float, vol: float, expiry: float, option_type: str = "call"
+) -> Greeks:
     """`bsm_greeks` plus Charm/Speed/Zomma/Color from the numerical engine. Scalar inputs only."""
     greeks = bsm_greeks(spot, strike, rate, dividend_yield, vol, expiry, option_type)
 
     def pricer(spot: float, vol: float, expiry: float, rate: float) -> float:
-        return bsm_price(spot, strike, rate, dividend_yield, vol, expiry, option_type)
+        return cast(float, bsm_price(spot, strike, rate, dividend_yield, vol, expiry, option_type))
 
     higher = numerical_greeks(pricer, spot=spot, vol=vol, expiry=expiry, rate=rate)
     greeks.charm, greeks.speed, greeks.zomma, greeks.color = (
@@ -102,7 +119,7 @@ def black76_greeks(
     rate: ArrayOrFloat,
     vol: ArrayOrFloat,
     expiry: ArrayOrFloat,
-    option_type: Union[str, np.ndarray] = "call",
+    option_type: str | np.ndarray = "call",
 ) -> Greeks:
     """Delta, Gamma, Vega, Theta, Rho, Vanna, Volga under Black-76."""
     forward, strike, rate, vol, expiry = as_float_arrays(forward, strike, rate, vol, expiry)
@@ -128,22 +145,24 @@ def black76_greeks(
     volga = vega * d1 * d2 / vol
 
     return Greeks(
-        delta=scalarize(delta),
-        gamma=scalarize(gamma),
-        vega=scalarize(vega),
-        theta=scalarize(theta),
-        rho=scalarize(rho),
-        vanna=scalarize(vanna),
-        volga=scalarize(volga),
+        delta=_scalar(delta),
+        gamma=_scalar(gamma),
+        vega=_scalar(vega),
+        theta=_scalar(theta),
+        rho=_scalar(rho),
+        vanna=_scalar(vanna),
+        volga=_scalar(volga),
     )
 
 
-def black76_full_greeks(forward, strike, rate, vol, expiry, option_type: str = "call") -> Greeks:
+def black76_full_greeks(
+    forward: float, strike: float, rate: float, vol: float, expiry: float, option_type: str = "call"
+) -> Greeks:
     """`black76_greeks` plus Charm/Speed/Zomma/Color from the numerical engine. Scalar inputs only."""
     greeks = black76_greeks(forward, strike, rate, vol, expiry, option_type)
 
     def pricer(spot: float, vol: float, expiry: float, rate: float) -> float:
-        return black76_price(spot, strike, rate, vol, expiry, option_type)
+        return cast(float, black76_price(spot, strike, rate, vol, expiry, option_type))
 
     higher = numerical_greeks(pricer, spot=forward, vol=vol, expiry=expiry, rate=rate)
     greeks.charm, greeks.speed, greeks.zomma, greeks.color = (

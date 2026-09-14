@@ -64,9 +64,7 @@ def crr_price(
             j = np.arange(step + 1)
             spots_here = spot * u**j * d ** (step - j)
             intrinsic = (
-                np.maximum(spots_here - strike, 0.0)
-                if option_type == "call"
-                else np.maximum(strike - spots_here, 0.0)
+                np.maximum(spots_here - strike, 0.0) if option_type == "call" else np.maximum(strike - spots_here, 0.0)
             )
             values = np.maximum(values, intrinsic)
 

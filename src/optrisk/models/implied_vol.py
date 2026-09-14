@@ -10,15 +10,15 @@ the classic Newton-Raphson blow-up when vega is near zero deep ITM/OTM.
 
 from __future__ import annotations
 
-from functools import partial
-from typing import Callable
+from collections.abc import Callable
+from typing import cast
 
 from scipy.optimize import brentq
 
 from optrisk.models.black76 import black76_price
 from optrisk.models.black_scholes import bsm_price
 
-__all__ = ["ImpliedVolError", "implied_vol", "bsm_implied_vol", "black76_implied_vol"]
+__all__ = ["ImpliedVolError", "black76_implied_vol", "bsm_implied_vol", "implied_vol"]
 
 
 class ImpliedVolError(ValueError):
@@ -54,7 +54,7 @@ def implied_vol(
             f"(model prices range [{f_lo + target_price:.6g}, {f_hi + target_price:.6g}]); "
             "check inputs for arbitrage or widen vol_bounds."
         )
-    return brentq(lambda v: pricer(v) - target_price, lo, hi, xtol=xtol)
+    return cast(float, brentq(lambda v: pricer(v) - target_price, lo, hi, xtol=xtol))
 
 
 def bsm_implied_vol(
@@ -65,11 +65,15 @@ def bsm_implied_vol(
     dividend_yield: float,
     expiry: float,
     option_type: str = "call",
-    **kwargs,
+    vol_bounds: tuple[float, float] = (1e-6, 5.0),
+    xtol: float = 1e-8,
 ) -> float:
     """Implied volatility under Black-Scholes-Merton."""
-    pricer = partial(bsm_price, spot, strike, rate, dividend_yield, expiry=expiry, option_type=option_type)
-    return implied_vol(price, pricer, **kwargs)
+
+    def pricer(vol: float) -> float:
+        return cast(float, bsm_price(spot, strike, rate, dividend_yield, vol, expiry, option_type))
+
+    return implied_vol(price, pricer, vol_bounds, xtol=xtol)
 
 
 def black76_implied_vol(
@@ -79,8 +83,12 @@ def black76_implied_vol(
     rate: float,
     expiry: float,
     option_type: str = "call",
-    **kwargs,
+    vol_bounds: tuple[float, float] = (1e-6, 5.0),
+    xtol: float = 1e-8,
 ) -> float:
     """Implied volatility under Black-76."""
-    pricer = partial(black76_price, forward, strike, rate, expiry=expiry, option_type=option_type)
-    return implied_vol(price, pricer, **kwargs)
+
+    def pricer(vol: float) -> float:
+        return cast(float, black76_price(forward, strike, rate, vol, expiry, option_type))
+
+    return implied_vol(price, pricer, vol_bounds, xtol=xtol)

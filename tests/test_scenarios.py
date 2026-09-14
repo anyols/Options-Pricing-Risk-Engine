@@ -107,7 +107,11 @@ def test_taylor_matches_aggregated_greeks_formula_for_single_underlying_book():
     d_spot = spot0 * 0.04
     d_vol = 0.02
     expected_full_2nd_order = (
-        g.delta * d_spot + 0.5 * g.gamma * d_spot**2 + g.vega * d_vol + g.vanna * d_spot * d_vol + 0.5 * g.volga * d_vol**2
+        g.delta * d_spot
+        + 0.5 * g.gamma * d_spot**2
+        + g.vega * d_vol
+        + g.vanna * d_spot * d_vol
+        + 0.5 * g.volga * d_vol**2
     )
     assert result.taylor_pnl["full_2nd_order"][0, 0] == pytest.approx(expected_full_2nd_order, rel=1e-9)
 
@@ -129,8 +133,8 @@ def test_scenario_engine_runs_on_multi_underlying_demo_portfolio():
 
 
 def test_unknown_taylor_order_raises():
-    from optrisk.risk.scenarios import _position_taylor_pnl
     from optrisk.greeks.types import Greeks
+    from optrisk.risk.scenarios import _position_taylor_pnl
 
     with pytest.raises(ValueError):
         _position_taylor_pnl(Greeks(), 100.0, 0.01, 0.0, "cubic")

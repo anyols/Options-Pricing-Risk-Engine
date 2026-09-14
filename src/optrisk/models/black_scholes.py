@@ -12,15 +12,13 @@ where                d1 = [ln(S/K) + (r - q + sigma^2/2) T] / (sigma sqrt(T))
 
 from __future__ import annotations
 
-from typing import Union
-
 import numpy as np
 
 from optrisk.models._common import MIN_T, MIN_VOL, N, as_float_arrays, is_call, scalarize
 
 __all__ = ["bsm_d1_d2", "bsm_price"]
 
-ArrayOrFloat = Union[float, np.ndarray]
+ArrayOrFloat = float | np.ndarray
 
 
 def bsm_d1_d2(
@@ -32,9 +30,7 @@ def bsm_d1_d2(
     expiry: ArrayOrFloat,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return the (d1, d2) pair used throughout the BSM formula and its Greeks."""
-    spot, strike, rate, dividend_yield, vol, expiry = as_float_arrays(
-        spot, strike, rate, dividend_yield, vol, expiry
-    )
+    spot, strike, rate, dividend_yield, vol, expiry = as_float_arrays(spot, strike, rate, dividend_yield, vol, expiry)
     vol = np.maximum(vol, MIN_VOL)
     expiry = np.maximum(expiry, MIN_T)
     vol_sqrt_t = vol * np.sqrt(expiry)
@@ -50,7 +46,7 @@ def bsm_price(
     dividend_yield: ArrayOrFloat,
     vol: ArrayOrFloat,
     expiry: ArrayOrFloat,
-    option_type: Union[str, np.ndarray] = "call",
+    option_type: str | np.ndarray = "call",
 ) -> ArrayOrFloat:
     """European option price under Black-Scholes-Merton.
 
@@ -64,9 +60,7 @@ def bsm_price(
         "call", "put", or an array of either for pricing a mixed book in one
         vectorized call.
     """
-    spot_a, strike_a, rate_a, div_a, vol_a, exp_a = as_float_arrays(
-        spot, strike, rate, dividend_yield, vol, expiry
-    )
+    spot_a, strike_a, rate_a, div_a, vol_a, exp_a = as_float_arrays(spot, strike, rate, dividend_yield, vol, expiry)
     d1, d2 = bsm_d1_d2(spot_a, strike_a, rate_a, div_a, vol_a, exp_a)
     disc_q = np.exp(-div_a * exp_a)
     disc_r = np.exp(-rate_a * exp_a)

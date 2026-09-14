@@ -16,7 +16,7 @@ from optrisk.models.black_scholes import bsm_price
 from optrisk.models.monte_carlo import mc_price
 
 SEED = 7
-CASE = dict(spot=100.0, strike=100.0, rate=0.04, dividend_yield=0.01, vol=0.3, expiry=1.0)
+CASE = {"spot": 100.0, "strike": 100.0, "rate": 0.04, "dividend_yield": 0.01, "vol": 0.3, "expiry": 1.0}
 N_REPS = 25
 REP_PATHS = 2_000
 

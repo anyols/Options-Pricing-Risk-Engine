@@ -27,17 +27,18 @@ agreement with an independent Heston Monte Carlo simulation.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import cast
 
 import numpy as np
+from numpy.typing import NDArray
 
 from optrisk.models.monte_carlo import MonteCarloResult
 
-__all__ = ["heston_price", "heston_mc_price", "heston_implied_vol_smile"]
+__all__ = ["heston_implied_vol_smile", "heston_mc_price", "heston_price"]
 
 
 def _heston_char_func(
-    u: np.ndarray,
+    u: NDArray[np.float64],
     x: float,
     v0: float,
     kappa: float,
@@ -47,7 +48,7 @@ def _heston_char_func(
     rate: float,
     dividend_yield: float,
     tau: float,
-) -> np.ndarray:
+) -> NDArray[np.complex128]:
     """Characteristic function of Y = ln(S_T / K) under Heston, at complex frequency `u`."""
     iu = 1j * u
     d = np.sqrt((rho * xi * iu - kappa) ** 2 + xi**2 * (iu + u**2))
@@ -58,11 +59,19 @@ def _heston_char_func(
         (kappa - rho * xi * iu - d) * tau - 2.0 * np.log((1 - g * exp_dtau) / (1 - g))
     )
     D = ((kappa - rho * xi * iu - d) / xi**2) * ((1 - exp_dtau) / (1 - g * exp_dtau))
-    return np.exp(C + D * v0 + iu * x)
+    return cast(NDArray[np.complex128], np.exp(C + D * v0 + iu * x))
 
 
 def _heston_cumulants(
-    x: float, v0: float, kappa: float, theta: float, xi: float, rho: float, rate: float, dividend_yield: float, tau: float
+    x: float,
+    v0: float,
+    kappa: float,
+    theta: float,
+    xi: float,
+    rho: float,
+    rate: float,
+    dividend_yield: float,
+    tau: float,
 ) -> tuple[float, float]:
     """First two cumulants of Y = ln(S_T/K), via central differences of ln(phi(u)) at u=0.
 
@@ -73,7 +82,8 @@ def _heston_cumulants(
     """
 
     def psi(u: float) -> complex:
-        return np.log(_heston_char_func(np.array([u]), x, v0, kappa, theta, xi, rho, rate, dividend_yield, tau))[0]
+        cf = _heston_char_func(np.array([u]), x, v0, kappa, theta, xi, rho, rate, dividend_yield, tau)
+        return cast(complex, np.log(cf)[0])
 
     h = 1e-3
     psi_plus, psi_minus, psi_mid = psi(h), psi(-h), psi(0.0)
@@ -82,24 +92,26 @@ def _heston_cumulants(
     return c1, c2
 
 
-def _psi_k(k: np.ndarray, a: float, b: float, c: float, d: float) -> np.ndarray:
+def _psi_k(k: NDArray[np.float64], a: float, b: float, c: float, d: float) -> NDArray[np.float64]:
     """Integral of cos(k*pi*(y-a)/(b-a)) over [c, d]."""
     k_safe = np.where(k == 0, 1.0, k)
     omega = k_safe * np.pi / (b - a)
     raw = (np.sin(omega * (d - a)) - np.sin(omega * (c - a))) * (b - a) / (k_safe * np.pi)
-    return np.where(k == 0, d - c, raw)
+    return cast(NDArray[np.float64], np.where(k == 0, d - c, raw))
 
 
-def _chi_k(k: np.ndarray, a: float, b: float, c: float, d: float) -> np.ndarray:
+def _chi_k(k: NDArray[np.float64], a: float, b: float, c: float, d: float) -> NDArray[np.float64]:
     """Integral of e^y * cos(k*pi*(y-a)/(b-a)) over [c, d]."""
     omega = k * np.pi / (b - a)
     denom = 1.0 + omega**2
     at_d = np.exp(d) * (np.cos(omega * (d - a)) + omega * np.sin(omega * (d - a)))
     at_c = np.exp(c) * (np.cos(omega * (c - a)) + omega * np.sin(omega * (c - a)))
-    return (at_d - at_c) / denom
+    return cast(NDArray[np.float64], (at_d - at_c) / denom)
 
 
-def _cos_payoff_coefficients(k: np.ndarray, a: float, b: float, is_call: bool, strike: float) -> np.ndarray:
+def _cos_payoff_coefficients(
+    k: NDArray[np.float64], a: float, b: float, is_call: bool, strike: float
+) -> NDArray[np.float64]:
     """Fourier-cosine coefficients of a vanilla payoff on [a, b] (Fang & Oosterlee 2008, Table 1)."""
     if is_call:
         lower = max(a, 0.0)
@@ -147,7 +159,7 @@ def heston_price(
     width = l_bound * np.sqrt(max(c2, 1e-12))
     a, b = c1 - width, c1 + width
 
-    k = np.arange(n_terms)
+    k = np.arange(n_terms, dtype=np.float64)
     u = k * np.pi / (b - a)
     cf = _heston_char_func(u, x, v0, kappa, theta, xi, rho, rate, dividend_yield, expiry)
     weights = np.real(cf * np.exp(-1j * u * a))
@@ -172,7 +184,7 @@ def heston_mc_price(
     option_type: str = "call",
     n_paths: int = 100_000,
     n_steps: int = 100,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> MonteCarloResult:
     """Heston price via Euler-Maruyama simulation with the full-truncation scheme
     (Lord, Koekkoek & Van Dijk, 2010): the variance process is floored at zero

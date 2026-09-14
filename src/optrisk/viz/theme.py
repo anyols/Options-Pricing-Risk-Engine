@@ -9,7 +9,9 @@ looks like part of the same product.
 from __future__ import annotations
 
 import matplotlib as mpl
+import plotly.graph_objects as go
 import seaborn as sns
+from cycler import cycler
 
 # -- palette -------------------------------------------------------------
 NAVY = "#0B2545"
@@ -64,26 +66,24 @@ def apply_matplotlib_theme() -> None:
             "savefig.facecolor": BACKGROUND,
             "savefig.dpi": 160,
             "figure.dpi": 110,
-            "axes.prop_cycle": mpl.cycler(color=PALETTE),
+            "axes.prop_cycle": cycler(color=PALETTE),
         }
     )
     _THEME_APPLIED = True
 
 
-def plotly_template():
+def plotly_template() -> go.layout.Template:
     """A Plotly layout template matching the matplotlib theme."""
-    import plotly.graph_objects as go
-
     return go.layout.Template(
         layout=go.Layout(
-            font=dict(family=FONT_STACK, color=TEXT, size=13),
+            font={"family": FONT_STACK, "color": TEXT, "size": 13},
             paper_bgcolor=BACKGROUND,
             plot_bgcolor=PANEL,
             colorway=PALETTE,
-            title=dict(font=dict(color=NAVY, size=18)),
-            xaxis=dict(gridcolor=LIGHT_GRAY, zerolinecolor=LIGHT_GRAY, linecolor=LIGHT_GRAY),
-            yaxis=dict(gridcolor=LIGHT_GRAY, zerolinecolor=LIGHT_GRAY, linecolor=LIGHT_GRAY),
-            legend=dict(bgcolor="rgba(0,0,0,0)"),
-            margin=dict(l=60, r=30, t=60, b=50),
+            title={"font": {"color": NAVY, "size": 18}},
+            xaxis={"gridcolor": LIGHT_GRAY, "zerolinecolor": LIGHT_GRAY, "linecolor": LIGHT_GRAY},
+            yaxis={"gridcolor": LIGHT_GRAY, "zerolinecolor": LIGHT_GRAY, "linecolor": LIGHT_GRAY},
+            legend={"bgcolor": "rgba(0,0,0,0)"},
+            margin={"l": 60, "r": 30, "t": 60, "b": 50},
         )
     )

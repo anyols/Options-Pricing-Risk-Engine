@@ -17,7 +17,7 @@ from optrisk.risk.hedging import (
     simulate_delta_hedge,
 )
 
-CASE = dict(spot0=100.0, strike=100.0, rate=0.03, dividend_yield=0.0, expiry=0.5)
+CASE = {"spot0": 100.0, "strike": 100.0, "rate": 0.03, "dividend_yield": 0.0, "expiry": 0.5}
 
 
 def test_hedge_is_zero_cost_at_inception():

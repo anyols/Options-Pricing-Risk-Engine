@@ -16,15 +16,13 @@ collapses to once the drift has already been folded into the forward price.
 
 from __future__ import annotations
 
-from typing import Union
-
 import numpy as np
 
 from optrisk.models._common import MIN_T, MIN_VOL, N, as_float_arrays, is_call, scalarize
 
 __all__ = ["black76_d1_d2", "black76_price"]
 
-ArrayOrFloat = Union[float, np.ndarray]
+ArrayOrFloat = float | np.ndarray
 
 
 def black76_d1_d2(
@@ -46,7 +44,7 @@ def black76_price(
     rate: ArrayOrFloat,
     vol: ArrayOrFloat,
     expiry: ArrayOrFloat,
-    option_type: Union[str, np.ndarray] = "call",
+    option_type: str | np.ndarray = "call",
 ) -> ArrayOrFloat:
     """European option price on a futures/forward contract under Black-76.
 

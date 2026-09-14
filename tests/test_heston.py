@@ -15,19 +15,49 @@ import pytest
 from optrisk.models.black_scholes import bsm_price
 from optrisk.models.heston import _heston_char_func, heston_implied_vol_smile, heston_mc_price, heston_price
 
-BASE = dict(spot=100.0, rate=0.03, dividend_yield=0.0, expiry=1.0, v0=0.04, kappa=1.5, theta=0.04, xi=0.3, rho=-0.7)
+BASE = {
+    "spot": 100.0,
+    "rate": 0.03,
+    "dividend_yield": 0.0,
+    "expiry": 1.0,
+    "v0": 0.04,
+    "kappa": 1.5,
+    "theta": 0.04,
+    "xi": 0.3,
+    "rho": -0.7,
+}
 
 
 def test_characteristic_function_at_zero_is_one():
     # phi(0) = E[e^0] = 1 always; a basic normalization sanity check
     cf = _heston_char_func(
-        np.array([0.0]), x=0.3, v0=0.05, kappa=2.0, theta=0.04, xi=0.4, rho=-0.5, rate=0.03, dividend_yield=0.01, tau=1.0
+        np.array([0.0]),
+        x=0.3,
+        v0=0.05,
+        kappa=2.0,
+        theta=0.04,
+        xi=0.4,
+        rho=-0.5,
+        rate=0.03,
+        dividend_yield=0.01,
+        tau=1.0,
     )
     assert cf[0] == pytest.approx(1.0 + 0.0j, abs=1e-10)
 
 
 def test_put_call_parity():
-    params = dict(spot=100.0, strike=105.0, rate=0.03, dividend_yield=0.01, expiry=0.75, v0=0.05, kappa=2.0, theta=0.04, xi=0.4, rho=-0.6)
+    params = {
+        "spot": 100.0,
+        "strike": 105.0,
+        "rate": 0.03,
+        "dividend_yield": 0.01,
+        "expiry": 0.75,
+        "v0": 0.05,
+        "kappa": 2.0,
+        "theta": 0.04,
+        "xi": 0.4,
+        "rho": -0.6,
+    }
     call = heston_price(**params, option_type="call")
     put = heston_price(**params, option_type="put")
     rhs = params["spot"] * np.exp(-params["dividend_yield"] * params["expiry"]) - params["strike"] * np.exp(
@@ -43,7 +73,19 @@ def test_degenerate_case_matches_bsm():
     # for xi below ~0.01 (a known characteristic of this parameterization,
     # not a sign of an incorrect formula -- see scratch exploration).
     theta = 0.04
-    heston = heston_price(spot=100.0, strike=100.0, rate=0.03, dividend_yield=0.0, expiry=1.0, v0=theta, kappa=1.5, theta=theta, xi=0.05, rho=-0.5, option_type="call")
+    heston = heston_price(
+        spot=100.0,
+        strike=100.0,
+        rate=0.03,
+        dividend_yield=0.0,
+        expiry=1.0,
+        v0=theta,
+        kappa=1.5,
+        theta=theta,
+        xi=0.05,
+        rho=-0.5,
+        option_type="call",
+    )
     bsm = bsm_price(100.0, 100.0, 0.03, 0.0, np.sqrt(theta), 1.0, "call")
     assert heston == pytest.approx(bsm, abs=1e-2)
 
@@ -78,8 +120,17 @@ def test_invalid_option_type_raises():
 def test_implied_vol_smile_is_not_flat_and_reflects_negative_skew():
     strikes = np.array([80.0, 90.0, 100.0, 110.0, 120.0])
     ivs = heston_implied_vol_smile(
-        spot=100.0, rate=0.03, dividend_yield=0.0, expiry=1.0, v0=0.04, kappa=1.5, theta=0.04, xi=0.5, rho=-0.7,
-        strikes=strikes, option_type="call",
+        spot=100.0,
+        rate=0.03,
+        dividend_yield=0.0,
+        expiry=1.0,
+        v0=0.04,
+        kappa=1.5,
+        theta=0.04,
+        xi=0.5,
+        rho=-0.7,
+        strikes=strikes,
+        option_type="call",
     )
     assert np.all(np.isfinite(ivs))
     assert np.ptp(ivs) > 0.01  # a real smile, not (numerically) flat

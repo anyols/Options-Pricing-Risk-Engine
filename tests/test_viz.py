@@ -50,16 +50,32 @@ def scenario_result(portfolio):
 @pytest.fixture(scope="module")
 def hedge_result():
     return simulate_delta_hedge(
-        spot0=100.0, strike=100.0, rate=0.03, dividend_yield=0.0, implied_vol=0.25, realized_vol=0.3,
-        expiry=0.5, option_type="call", n_steps=60, seed=1,
+        spot0=100.0,
+        strike=100.0,
+        rate=0.03,
+        dividend_yield=0.0,
+        implied_vol=0.25,
+        realized_vol=0.3,
+        expiry=0.5,
+        option_type="call",
+        n_steps=60,
+        seed=1,
     )
 
 
 @pytest.fixture(scope="module")
 def frequency_frame():
     return run_hedge_frequency_comparison(
-        spot0=100.0, strike=100.0, rate=0.03, dividend_yield=0.0, implied_vol=0.25, realized_vol=0.3,
-        expiry=0.5, frequencies={"Daily": 24, "Weekly": 6, "Monthly": 2}, n_paths=30, seed=1,
+        spot0=100.0,
+        strike=100.0,
+        rate=0.03,
+        dividend_yield=0.0,
+        implied_vol=0.25,
+        realized_vol=0.3,
+        expiry=0.5,
+        frequencies={"Daily": 24, "Weekly": 6, "Monthly": 2},
+        n_paths=30,
+        seed=1,
     )
 
 
@@ -101,8 +117,17 @@ def test_plot_hedge_pnl_distribution(frequency_frame):
 def test_plot_vol_smile():
     strikes = np.linspace(80, 120, 9)
     ivs = heston_implied_vol_smile(
-        spot=100.0, rate=0.03, dividend_yield=0.0, expiry=1.0, v0=0.04, kappa=1.5, theta=0.04, xi=0.5, rho=-0.7,
-        strikes=strikes, option_type="call",
+        spot=100.0,
+        rate=0.03,
+        dividend_yield=0.0,
+        expiry=1.0,
+        v0=0.04,
+        kappa=1.5,
+        theta=0.04,
+        xi=0.5,
+        rho=-0.7,
+        strikes=strikes,
+        option_type="call",
     )
     _assert_is_figure(plot_vol_smile(strikes, {"Heston": ivs, "Flat BSM": np.full_like(ivs, 0.2)}, spot=100.0))
 

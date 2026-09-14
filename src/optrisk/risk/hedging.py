@@ -21,7 +21,6 @@ distribution tightens as rebalancing gets more frequent.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -31,9 +30,9 @@ from optrisk.models.black_scholes import bsm_price
 
 __all__ = [
     "HedgeSimulationResult",
-    "simulate_delta_hedge",
-    "run_hedge_monte_carlo",
     "run_hedge_frequency_comparison",
+    "run_hedge_monte_carlo",
+    "simulate_delta_hedge",
 ]
 
 
@@ -76,8 +75,8 @@ def simulate_delta_hedge(
     option_type: str = "call",
     option_quantity: float = 1.0,
     n_steps: int = 252,
-    seed: Optional[int] = None,
-    spot_path: Optional[np.ndarray] = None,
+    seed: int | None = None,
+    spot_path: np.ndarray | None = None,
 ) -> HedgeSimulationResult:
     """Simulate delta-hedging `option_quantity` options from t=0 to expiry.
 
@@ -148,15 +147,24 @@ def run_hedge_monte_carlo(
     option_quantity: float = 1.0,
     n_steps: int = 252,
     n_paths: int = 500,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> np.ndarray:
     """Final hedging P&L across `n_paths` independent simulated underlying paths."""
     rng = np.random.default_rng(seed)
     pnls = np.empty(n_paths)
     for i in range(n_paths):
         result = simulate_delta_hedge(
-            spot0, strike, rate, dividend_yield, implied_vol, realized_vol, expiry,
-            option_type, option_quantity, n_steps=n_steps, seed=int(rng.integers(0, 2**31 - 1)),
+            spot0,
+            strike,
+            rate,
+            dividend_yield,
+            implied_vol,
+            realized_vol,
+            expiry,
+            option_type,
+            option_quantity,
+            n_steps=n_steps,
+            seed=int(rng.integers(0, 2**31 - 1)),
         )
         pnls[i] = result.final_pnl
     return pnls
@@ -172,9 +180,9 @@ def run_hedge_frequency_comparison(
     expiry: float,
     option_type: str = "call",
     option_quantity: float = 1.0,
-    frequencies: Optional[Dict[str, int]] = None,
+    frequencies: dict[str, int] | None = None,
     n_paths: int = 300,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> pd.DataFrame:
     """Compare final hedging P&L across rebalancing frequencies.
 
@@ -201,8 +209,17 @@ def run_hedge_frequency_comparison(
             stride = finest // steps
             sub_path = fine_path[::stride]
             result = simulate_delta_hedge(
-                spot0, strike, rate, dividend_yield, implied_vol, realized_vol, expiry,
-                option_type, option_quantity, n_steps=steps, spot_path=sub_path,
+                spot0,
+                strike,
+                rate,
+                dividend_yield,
+                implied_vol,
+                realized_vol,
+                expiry,
+                option_type,
+                option_quantity,
+                n_steps=steps,
+                spot_path=sub_path,
             )
             records.append({"trial": trial, "frequency": label, "n_rebalances": steps, "final_pnl": result.final_pnl})
 

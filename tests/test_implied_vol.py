@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 
 from optrisk.models.black76 import black76_price
@@ -62,7 +64,7 @@ def test_unreachable_price_raises():
 def test_generic_solver_works_with_arbitrary_pricer():
     # sanity check that `implied_vol` itself is model-agnostic, not just its wrappers
     def toy_pricer(vol: float) -> float:
-        return bsm_price(100.0, 90.0, 0.05, 0.0, vol, 1.0, "call")
+        return cast(float, bsm_price(100.0, 90.0, 0.05, 0.0, vol, 1.0, "call"))
 
     target = toy_pricer(0.33)
     recovered = implied_vol(target, toy_pricer)

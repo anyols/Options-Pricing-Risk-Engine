@@ -21,7 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 app = ["streamlit>=1.32", "kaleido>=0.2.1"]
-dev = ["pytest>=8.0", "pytest-cov>=4.1"]
+dev = ["pytest>=8.0", "pytest-cov>=4.1", "ruff>=0.16", "mypy>=1.13", "pandas-stubs>=2.0", "pre-commit>=4.0"]
 notebook = ["jupyter>=1.0", "ipykernel>=6.29"]
 
 [tool.setuptools.packages.find]
@@ -30,3 +30,59 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests", "app", "scripts"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # pycodestyle / pyflakes
+    "I",             # import sorting
+    "N",             # PEP 8 naming
+    "UP",            # pyupgrade (modern syntax)
+    "B",             # flake8-bugbear (likely bugs)
+    "C4",            # flake8-comprehensions
+    "SIM",           # flake8-simplify
+    "RUF",           # ruff-specific
+    "NPY",           # numpy-specific
+]
+ignore = [
+    "E731",  # lambda assignment (used deliberately for pricer closures)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["N802", "N806"]  # test names/fixtures don't follow function-naming conventions
+"src/optrisk/models/heston.py" = ["N806"]  # C, D match the Heston/Gatheral characteristic-function notation verbatim
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+explicit_package_bases = true
+warn_return_any = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["scipy.*", "seaborn.*", "matplotlib.*", "plotly.*", "streamlit.*"]
+ignore_missing_imports = true
+
+# Tests stay unannotated (standard pytest style) and untyped-def bodies
+# aren't checked: pytest fixtures are routinely spread into calls via
+# `**CASE` dicts, which mypy can't verify against a heterogeneously-typed
+# signature without a TypedDict per fixture -- a real mypy/kwargs-unpacking
+# limitation, not a bug (the calls are exercised, and pass, at runtime via
+# the actual test suite). src/, app/ and scripts/ stay fully strict.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false

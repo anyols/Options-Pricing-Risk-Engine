@@ -10,7 +10,6 @@ Financial Engineering", Ch. 4).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -35,7 +34,7 @@ def mc_price(
     n_paths: int = 100_000,
     antithetic: bool = True,
     control_variate: bool = True,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> MonteCarloResult:
     """Price a European option by simulating terminal GBM spot prices.
 
@@ -54,10 +53,7 @@ def mc_price(
     diffusion = vol * np.sqrt(expiry) * z
     terminal = spot * np.exp(drift + diffusion)
 
-    if option_type == "call":
-        payoff = np.maximum(terminal - strike, 0.0)
-    else:
-        payoff = np.maximum(strike - terminal, 0.0)
+    payoff = np.maximum(terminal - strike, 0.0) if option_type == "call" else np.maximum(strike - terminal, 0.0)
 
     discounted_payoff = np.exp(-rate * expiry) * payoff
 

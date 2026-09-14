@@ -20,20 +20,21 @@ same underlying.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 
 from optrisk.greeks.types import Greeks
+from optrisk.instruments.option import Model
 from optrisk.instruments.portfolio import Portfolio
 
 __all__ = ["TAYLOR_ORDERS", "ScenarioResult", "default_shock_grid", "run_scenario_analysis"]
 
 # increasing order of Taylor-series richness; each includes every term before it
-TAYLOR_ORDERS: Tuple[str, ...] = ("delta", "delta_gamma", "delta_gamma_vega", "full_2nd_order")
+TAYLOR_ORDERS: tuple[str, ...] = ("delta", "delta_gamma", "delta_gamma_vega", "full_2nd_order")
 
-TAYLOR_ORDER_LABELS: Dict[str, str] = {
+TAYLOR_ORDER_LABELS: dict[str, str] = {
     "delta": "Delta only",
     "delta_gamma": "Delta + Gamma",
     "delta_gamma_vega": "Delta + Gamma + Vega",
@@ -46,7 +47,7 @@ def default_shock_grid(
     n_spot: int = 21,
     vol_range: float = 0.15,
     n_vol: int = 15,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """A symmetric (spot_shocks, vol_shocks) grid centered on the base case."""
     spot_shocks = np.linspace(-spot_range_pct, spot_range_pct, n_spot)
     vol_shocks = np.linspace(-vol_range, vol_range, n_vol)
@@ -80,14 +81,14 @@ class ScenarioResult:
     orientation (rows = vol, columns = spot).
     """
 
-    spot_shocks: np.ndarray
-    vol_shocks: np.ndarray
+    spot_shocks: NDArray[np.float64]
+    vol_shocks: NDArray[np.float64]
     base_value: float
     base_greeks: Greeks
-    full_pnl: np.ndarray
-    taylor_pnl: Dict[str, np.ndarray]
+    full_pnl: NDArray[np.float64]
+    taylor_pnl: dict[str, NDArray[np.float64]]
 
-    def error(self, order: str) -> np.ndarray:
+    def error(self, order: str) -> NDArray[np.float64]:
         """Taylor-approx P&L minus full-reprice P&L (+ means the approx overstates P&L)."""
         return self.taylor_pnl[order] - self.full_pnl
 
@@ -109,9 +110,9 @@ class ScenarioResult:
 
 def run_scenario_analysis(
     portfolio: Portfolio,
-    spot_shocks: np.ndarray,
-    vol_shocks: np.ndarray,
-    model: str = "auto",
+    spot_shocks: NDArray[np.float64],
+    vol_shocks: NDArray[np.float64],
+    model: Model = "auto",
 ) -> ScenarioResult:
     """Full reprice + Taylor-approximation P&L surfaces for `portfolio` over the grid."""
     base_value = portfolio.value(model=model)
@@ -131,7 +132,7 @@ def run_scenario_analysis(
             for order in TAYLOR_ORDERS:
                 taylor_pnl[order][i, j] = sum(
                     _position_taylor_pnl(g, s0, float(ds), float(dvol), order)
-                    for g, s0 in zip(position_greeks, position_spots)
+                    for g, s0 in zip(position_greeks, position_spots, strict=True)
                 )
 
     return ScenarioResult(

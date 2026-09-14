@@ -32,24 +32,24 @@ class Greeks:
     zomma: float = 0.0
     color: float = 0.0
 
-    def __add__(self, other: "Greeks") -> "Greeks":
+    def __add__(self, other: Greeks) -> Greeks:
         if not isinstance(other, Greeks):
             return NotImplemented
         return Greeks(**{f.name: getattr(self, f.name) + getattr(other, f.name) for f in fields(self)})
 
-    def __radd__(self, other: object) -> "Greeks":
+    def __radd__(self, other: object) -> Greeks:
         # makes sum([g1, g2, ...]) work, since sum() seeds the accumulator with 0
         if other == 0:
             return self
         return NotImplemented
 
-    def __sub__(self, other: "Greeks") -> "Greeks":
+    def __sub__(self, other: Greeks) -> Greeks:
         return self + (-other)
 
-    def __neg__(self) -> "Greeks":
+    def __neg__(self) -> Greeks:
         return self * -1.0
 
-    def __mul__(self, scalar: float) -> "Greeks":
+    def __mul__(self, scalar: float) -> Greeks:
         return Greeks(**{f.name: getattr(self, f.name) * scalar for f in fields(self)})
 
     __rmul__ = __mul__
