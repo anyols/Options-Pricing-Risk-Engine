@@ -14,12 +14,14 @@ from optrisk.instruments.portfolio import Portfolio, Position
 from optrisk.market.sample_data import build_demo_portfolio
 from optrisk.models.heston import heston_implied_vol_smile
 from optrisk.risk.hedging import run_hedge_frequency_comparison, simulate_delta_hedge
+from optrisk.risk.pnl_attribution import attribute_pnl
 from optrisk.risk.scenarios import TAYLOR_ORDER_LABELS, TAYLOR_ORDERS, default_shock_grid, run_scenario_analysis
 from optrisk.viz.plots import (
     plot_greeks_bar,
     plotly_hedge_path,
     plotly_pnl_distribution,
     plotly_pnl_surface,
+    plotly_pnl_waterfall,
     plotly_vol_smile,
 )
 from optrisk.viz.theme import NAVY
@@ -155,11 +157,12 @@ st.caption(
 if len(portfolio) == 0:
     st.stop()
 
-tab_summary, tab_greeks, tab_scenario, tab_hedge, tab_smile = st.tabs(
+tab_summary, tab_greeks, tab_scenario, tab_attribution, tab_hedge, tab_smile = st.tabs(
     [
         "\U0001f4cb Portfolio Summary",
         "\U0001f4d0 Greeks Explorer",
         "\U0001f30b Scenario Analysis",
+        "\U0001f9ee P&L Attribution",
         "⚖️ Delta-Hedging Simulator",
         "\U0001f30a Vol Smile (Heston)",
     ]
@@ -314,6 +317,38 @@ with tab_scenario:
             f"${result.max_abs_error(order_name):,.0f}",
             help="Max |Taylor approx - full reprice| over the grid",
         )
+
+
+# ============================================================ tab: pnl attribution ===
+
+with tab_attribution:
+    st.subheader('P&L Attribution ("P&L Explain")')
+    st.caption(
+        "Decompose a realized move into Delta/Gamma/Vega/Theta/cross-term contributions plus an "
+        "unexplained residual -- the reconciliation a derivatives risk desk runs every day."
+    )
+
+    c1, c2, c3 = st.columns(3)
+    attr_spot_pct = c1.slider("Spot move (%)", -15.0, 15.0, -1.2, step=0.1, key="attr_spot") / 100
+    attr_vol_pts = c2.slider("Vol move (pts)", -10.0, 10.0, 0.8, step=0.1, key="attr_vol") / 100
+    attr_days = c3.slider("Trading days elapsed", 0, 21, 1, key="attr_days")
+
+    attribution = attribute_pnl(
+        portfolio, spot_shock_pct=attr_spot_pct, vol_shock=attr_vol_pts, time_elapsed=attr_days / 252
+    )
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Full Reprice P&L", f"${attribution.full_pnl:,.2f}")
+    m2.metric("Explained by Greeks", f"${attribution.explained_pnl:,.2f}")
+    m3.metric("Unexplained", f"${attribution.unexplained_pnl:,.2f}", f"{attribution.unexplained_pct:.1f}% of move")
+
+    st.plotly_chart(plotly_pnl_waterfall(attribution), width="stretch")
+    st.info(
+        "A large, persistent unexplained residual is itself a risk signal: it means the book's "
+        "convexity/vol-of-vol exposure is bigger than a 2nd-order Taylor expansion (or the Greeks "
+        "themselves) can capture -- exactly the nonlinear risk the Scenario Analysis tab explores directly.",
+        icon="\U0001f4a1",
+    )
 
 
 # ============================================================ tab: delta hedging ===

@@ -16,6 +16,7 @@ ASSETS = ROOT / "assets"
 from optrisk.market.sample_data import build_demo_portfolio  # noqa: E402
 from optrisk.models.heston import heston_implied_vol_smile  # noqa: E402
 from optrisk.risk.hedging import run_hedge_frequency_comparison, simulate_delta_hedge  # noqa: E402
+from optrisk.risk.pnl_attribution import attribute_pnl  # noqa: E402
 from optrisk.risk.scenarios import default_shock_grid, run_scenario_analysis  # noqa: E402
 from optrisk.viz.plots import (  # noqa: E402
     plot_greek_curves,
@@ -24,6 +25,7 @@ from optrisk.viz.plots import (  # noqa: E402
     plot_hedge_pnl_distribution,
     plot_payoff_diagram,
     plot_pnl_heatmap,
+    plot_pnl_waterfall,
     plot_taylor_error_heatmaps,
     plot_taylor_slice,
     plot_vol_smile,
@@ -46,16 +48,16 @@ def main() -> None:
         portfolio.to_frame()[["label", "quantity", "price", "value", "delta", "gamma", "vega"]].to_string(index=False)
     )
 
-    print("\n[1/7] Payoff diagram")
+    print("\n[1/8] Payoff diagram")
     save(plot_payoff_diagram(portfolio), "payoff_diagram")
 
-    print("[2/7] Greek curves")
+    print("[2/8] Greek curves")
     save(plot_greek_curves(portfolio), "greek_curves")
 
-    print("[3/7] Portfolio Greeks summary")
+    print("[3/8] Portfolio Greeks summary")
     save(plot_greeks_bar(portfolio.greeks()), "greeks_summary")
 
-    print("[4/7] Scenario analysis: full reprice vs Taylor approximation")
+    print("[4/8] Scenario analysis: full reprice vs Taylor approximation")
     spot_shocks, vol_shocks = default_shock_grid(spot_range_pct=0.25, n_spot=41, vol_range=0.15, n_vol=31)
     result = run_scenario_analysis(portfolio, spot_shocks, vol_shocks)
     save(plot_pnl_heatmap(result), "pnl_heatmap_full_reprice")
@@ -68,7 +70,17 @@ def main() -> None:
     for order in result.taylor_pnl:
         print(f"    max |error| ({order}): {result.max_abs_error(order):,.2f}")
 
-    print("[5/7] Delta-hedging simulation")
+    print("[5/8] P&L attribution: a realistic single trading day")
+    # a modest, realistic daily move (not the wide scenario-grid range above),
+    # so the waterfall reads like an actual desk P&L explain
+    attribution = attribute_pnl(portfolio, spot_shock_pct=-0.012, vol_shock=0.008, time_elapsed=1 / 252)
+    save(plot_pnl_waterfall(attribution), "pnl_waterfall")
+    print(
+        f"    full P&L = {attribution.full_pnl:+,.2f}, "
+        f"unexplained = {attribution.unexplained_pnl:+,.2f} ({attribution.unexplained_pct:.1f}%)"
+    )
+
+    print("[6/8] Delta-hedging simulation")
     hedge = simulate_delta_hedge(
         spot0=100.0,
         strike=100.0,
@@ -84,7 +96,7 @@ def main() -> None:
     )
     save(plot_hedge_path(hedge), "hedge_path")
 
-    print("[6/7] Hedging P&L distribution vs rebalancing frequency")
+    print("[7/8] Hedging P&L distribution vs rebalancing frequency")
     freq_frame = run_hedge_frequency_comparison(
         spot0=100.0,
         strike=100.0,
@@ -101,7 +113,7 @@ def main() -> None:
     save(plot_hedge_pnl_distribution(freq_frame), "hedge_pnl_distribution")
     print(freq_frame.groupby("frequency")["final_pnl"].agg(["mean", "std"]).to_string())
 
-    print("[7/7] Heston-implied volatility smile vs flat BSM")
+    print("[8/8] Heston-implied volatility smile vs flat BSM")
     strikes = np.linspace(70, 130, 25)
     heston_ivs = heston_implied_vol_smile(
         spot=100.0,

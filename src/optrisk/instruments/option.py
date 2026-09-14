@@ -59,6 +59,10 @@ class OptionSpec:
             return max(spot_at_expiry - self.strike, 0.0)
         return max(self.strike - spot_at_expiry, 0.0)
 
+    def aged(self, time_elapsed: float) -> OptionSpec:
+        """A new OptionSpec `time_elapsed` years closer to expiry (spot/vol unchanged)."""
+        return replace(self, expiry=max(self.expiry - time_elapsed, 1e-6))
+
     def _resolve_model(self, model: Model) -> Model:
         if model != "auto":
             return model

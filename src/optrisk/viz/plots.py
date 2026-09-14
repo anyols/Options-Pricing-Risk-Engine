@@ -25,6 +25,7 @@ from optrisk.greeks.types import Greeks
 from optrisk.instruments.option import Stock
 from optrisk.instruments.portfolio import Portfolio, Position
 from optrisk.risk.hedging import HedgeSimulationResult
+from optrisk.risk.pnl_attribution import PnLAttribution
 from optrisk.risk.scenarios import TAYLOR_ORDER_LABELS, TAYLOR_ORDERS, ScenarioResult
 from optrisk.viz.theme import (
     AMBER,
@@ -51,12 +52,14 @@ __all__ = [
     "plot_hedge_pnl_distribution",
     "plot_payoff_diagram",
     "plot_pnl_heatmap",
+    "plot_pnl_waterfall",
     "plot_taylor_error_heatmaps",
     "plot_taylor_slice",
     "plot_vol_smile",
     "plotly_hedge_path",
     "plotly_pnl_distribution",
     "plotly_pnl_surface",
+    "plotly_pnl_waterfall",
     "plotly_vol_smile",
 ]
 
@@ -335,6 +338,65 @@ def plot_greeks_bar(greeks: Greeks, greek_names: Sequence[str] = ("delta", "gamm
     return fig
 
 
+def _label_bar(
+    ax: plt.Axes, x: float, bottom: float, top: float, value: float, text: str, span: float, *, bold: bool = False
+) -> None:
+    """Place a bar's value label inside it (white) if it's tall enough to hold
+    the text, else just outside its own top/bottom edge (dark) -- anchored to
+    the bar's own geometry, never to the cumulative position, so a label can
+    never drift toward the axis regardless of how far the waterfall has walked.
+
+    Which edge ("outside" the top or the bottom) is chosen by the *sign of
+    the bucket's own value*, not by whether the bar happens to sit above or
+    below zero -- a small positive bucket deep in negative cumulative
+    territory must still label upward, away from the bars (and the x-axis
+    labels) below it.
+    """
+    height = top - bottom
+    weight = "bold" if bold else "normal"
+    if height > 0.12 * span:
+        ax.text(x, (top + bottom) / 2, text, ha="center", va="center", fontsize=9, color="white", fontweight="bold")
+    elif value >= 0:
+        ax.text(x, top + span * 0.02, text, ha="center", va="bottom", fontsize=9, color=TEXT, fontweight=weight)
+    else:
+        ax.text(x, bottom - span * 0.02, text, ha="center", va="top", fontsize=9, color=TEXT, fontweight=weight)
+
+
+def plot_pnl_waterfall(attribution: PnLAttribution) -> Figure:
+    """Waterfall chart: how each Greek bucket (plus the unexplained residual)
+    builds up to the realized full-reprice P&L -- a risk desk's daily "P&L explain".
+    """
+    frame = attribution.to_waterfall_frame()
+    buckets = [*frame["bucket"].tolist(), "Total"]
+    values = frame["pnl"].to_numpy()
+    cumulative = np.concatenate([[0.0], np.cumsum(values)])
+    span = float(np.max(cumulative) - np.min(cumulative)) or 1.0
+
+    fig, ax = plt.subplots(figsize=(9.5, 5.5))
+    for i, value in enumerate(values):
+        top, bottom = max(cumulative[i], cumulative[i + 1]), min(cumulative[i], cumulative[i + 1])
+        ax.bar(i, top - bottom, bottom=bottom, color=GREEN if value >= 0 else RED, width=0.6, edgecolor="white")
+        _label_bar(ax, i, bottom, top, value, f"{value:+,.1f}", span)
+        if i < len(values) - 1:
+            ax.plot([i + 0.3, i + 1 - 0.3], [cumulative[i + 1]] * 2, color=GRAY, linewidth=0.8, linestyle=":")
+
+    # total bar, anchored at zero
+    total_top, total_bottom = max(0.0, attribution.full_pnl), min(0.0, attribution.full_pnl)
+    ax.bar(len(values), total_top - total_bottom, bottom=total_bottom, color=NAVY, width=0.6, edgecolor="white")
+    _label_bar(
+        ax, len(values), total_bottom, total_top, attribution.full_pnl, f"{attribution.full_pnl:+,.1f}", span, bold=True
+    )
+
+    ax.axhline(0, color=GRAY, linewidth=0.8)
+    ax.set_xticks(range(len(buckets)))
+    ax.set_xticklabels(buckets)
+    ax.margins(y=0.15)
+    ax.set_ylabel("P&L ($)")
+    ax.set_title(f"P&L Attribution Waterfall (unexplained: {attribution.unexplained_pct:.1f}% of full move)")
+    fig.tight_layout()
+    return fig
+
+
 # ============================================================ interactive (plotly) ===
 
 
@@ -362,6 +424,32 @@ def plotly_pnl_surface(result: ScenarioResult, order: str | None = None) -> go.F
             "zaxis_title": "P&L ($)",
         },
         height=560,
+    )
+    return fig
+
+
+def plotly_pnl_waterfall(attribution: PnLAttribution) -> go.Figure:
+    """Interactive P&L attribution waterfall via Plotly's native waterfall trace."""
+    frame = attribution.to_waterfall_frame()
+    fig = go.Figure(
+        go.Waterfall(
+            x=[*frame["bucket"].tolist(), "Total"],
+            y=[*frame["pnl"].tolist(), 0],
+            measure=["relative"] * len(frame) + ["total"],
+            connector={"line": {"color": GRAY, "width": 1}},
+            increasing={"marker": {"color": GREEN}},
+            decreasing={"marker": {"color": RED}},
+            totals={"marker": {"color": NAVY}},
+            texttemplate="%{y:+,.1f}",
+            textposition="outside",
+        )
+    )
+    fig.update_layout(
+        template=plotly_template(),
+        title=f"P&L Attribution Waterfall (unexplained: {attribution.unexplained_pct:.1f}% of full move)",
+        yaxis_title="P&L ($)",
+        height=460,
+        showlegend=False,
     )
     return fig
 

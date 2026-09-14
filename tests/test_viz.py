@@ -18,6 +18,7 @@ from optrisk.greeks.types import Greeks
 from optrisk.market.sample_data import build_demo_portfolio
 from optrisk.models.heston import heston_implied_vol_smile
 from optrisk.risk.hedging import run_hedge_frequency_comparison, simulate_delta_hedge
+from optrisk.risk.pnl_attribution import attribute_pnl
 from optrisk.risk.scenarios import default_shock_grid, run_scenario_analysis
 from optrisk.viz.plots import (
     plot_greek_curves,
@@ -26,12 +27,14 @@ from optrisk.viz.plots import (
     plot_hedge_pnl_distribution,
     plot_payoff_diagram,
     plot_pnl_heatmap,
+    plot_pnl_waterfall,
     plot_taylor_error_heatmaps,
     plot_taylor_slice,
     plot_vol_smile,
     plotly_hedge_path,
     plotly_pnl_distribution,
     plotly_pnl_surface,
+    plotly_pnl_waterfall,
     plotly_vol_smile,
 )
 
@@ -45,6 +48,11 @@ def portfolio():
 def scenario_result(portfolio):
     spot_shocks, vol_shocks = default_shock_grid(n_spot=9, n_vol=7)
     return run_scenario_analysis(portfolio, spot_shocks, vol_shocks)
+
+
+@pytest.fixture(scope="module")
+def attribution(portfolio):
+    return attribute_pnl(portfolio, spot_shock_pct=-0.03, vol_shock=0.02, time_elapsed=1 / 252)
 
 
 @pytest.fixture(scope="module")
@@ -98,6 +106,10 @@ def test_plot_pnl_heatmap(scenario_result):
     _assert_is_figure(plot_pnl_heatmap(scenario_result, order="delta_gamma"))
 
 
+def test_plot_pnl_waterfall(attribution):
+    _assert_is_figure(plot_pnl_waterfall(attribution))
+
+
 def test_plot_taylor_error_heatmaps(scenario_result):
     _assert_is_figure(plot_taylor_error_heatmaps(scenario_result))
 
@@ -139,6 +151,11 @@ def test_plot_greeks_bar():
 
 def test_plotly_pnl_surface(scenario_result):
     fig = plotly_pnl_surface(scenario_result)
+    assert fig.data
+
+
+def test_plotly_pnl_waterfall(attribution):
+    fig = plotly_pnl_waterfall(attribution)
     assert fig.data
 
 

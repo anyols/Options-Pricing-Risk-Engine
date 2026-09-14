@@ -48,6 +48,12 @@ class Position:
     def with_market(self, market: MarketEnv) -> Position:
         return replace(self, market=market)
 
+    def aged(self, time_elapsed: float) -> Position:
+        """A new Position `time_elapsed` years closer to expiry (spot/vol unchanged); a no-op for Stock."""
+        if isinstance(self.instrument, Stock):
+            return self
+        return replace(self, instrument=self.instrument.aged(time_elapsed))
+
 
 @dataclass
 class Portfolio:
@@ -72,6 +78,10 @@ class Portfolio:
             p.with_market(p.market.shocked(spot_shock_pct=spot_shock_pct, vol_shock=vol_shock)) for p in self.positions
         ]
         return Portfolio(positions=shocked_positions, name=self.name)
+
+    def aged(self, time_elapsed: float) -> Portfolio:
+        """A new Portfolio `time_elapsed` years closer to expiry (pure time decay: spot/vol unchanged)."""
+        return Portfolio(positions=[p.aged(time_elapsed) for p in self.positions], name=self.name)
 
     def to_frame(self, model: Model = "auto", **model_kwargs: int) -> pd.DataFrame:
         """One row per position: identifying info, price/value, and full Greeks."""
